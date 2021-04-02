@@ -57,18 +57,13 @@ validate_range:
 ; r17 is sensor value
 ; X is pointer in memory.
 save_log:
-	; INC X
-	; ! Needed to implement 16bit comparison
-	; cpi X, LOWER(RAMEND)
-	
-	; st X+, r20
-	; st X+, r21
-	; st X+, r22
-	; ldi r17, 0
-	; st X+, r17
+	; INC x
+	; CHECK IF X > RAMEND if so set X to SRAM_START
+	st x, r17
 	ret
 
 main:
+	; check for request signal
 	; lds r16, ping
 	; cpi r16, 0xFF
 	; breq accept_request
@@ -84,6 +79,7 @@ main:
 		rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
 		mov r20, r17 ; saving result into register for later use.
 		out portd, r17 ; displaying result
+		rcall save_log
 
 		; Moisture
 		; in r17, pinb ; moisture value
@@ -93,6 +89,7 @@ main:
 		rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
 		mov r21, r17 ; saving result into register for later use.
 		out porte, r17 ; displaying result
+		rcall save_log
 
 		; Water level
 		; in r17, pinc ; water level value
@@ -102,7 +99,9 @@ main:
 		rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
 		mov r22, r17 ; saving result into register for later use.
 		sts portf, r17 ; displaying result
-
-		; save it memory
 		rcall save_log
+
+		ldi r17, 0x00
+		rcall save_log
+
 		rjmp main
