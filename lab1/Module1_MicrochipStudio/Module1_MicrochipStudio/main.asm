@@ -3,13 +3,14 @@
 ; 16bit comparison to check if pointer is bigger 
 ; then SRAM SIZE set it so RAM_START in save_log:
 
-; Request button needs to be implemented after main:
-
 .include "m128def.inc"
 
 .equ TEMPERATURE=31
 .equ MOISTURE=32
 .equ WATER_LEVEL=33
+
+.cseg
+.org 0x0050
 
 ; Initialization of stuff
 
@@ -33,12 +34,9 @@ out ddrd, r16
 out ddre, r16
 sts ddrf, r16 ; PORT F is I/0 extended we can't use out it's out of range.
 
-; Settings up port G
-; pin1 > pin0
-; ldi r16, 0b11100 
-; sts ddrg, r16
-; ldi r16, 0b00011
-; sts ping, r16
+; Settings up port G pin0 = output pin1 = input
+ldi r16, 0x01
+sts ddrg, r16
 
 ; Setting pointer for logging.
 ldi xl, LOW(SRAM_START)
@@ -65,17 +63,21 @@ validate_range:
 ; X is pointer in memory.
 save_log:
 	; CHECK IF X > RAMEND if so set X to SRAM_START
+	; cmp LOW(st), LOW(RAMEND)
+	; brge 
 	st x+, r17
 	ret
 
 main:
-	; check for request signal
-	; lds r16, ping
-	; cpi r16, 0xFF
-	; breq accept_request
-	; rjmp main
+	lds r16, ping
+	ori r16, 0b11111101
+	cpi r16, 0xFF
+	breq accept_request
+	ldi r16, 0x00
+	sts portg, r16
+	rjmp main
 	accept_request:
-		;sts portg, r16 ; Light up acknowledge led.
+		sts portg, r16 ; Light up acknowledge led.
 		
 		; Temperature
 		; in r17, pina ; temp value
