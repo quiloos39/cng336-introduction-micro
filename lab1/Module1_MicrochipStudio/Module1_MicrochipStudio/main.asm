@@ -1,3 +1,10 @@
+; Stuff needs to be done implement 
+
+; 16bit comparison to check if pointer is bigger 
+; then SRAM SIZE set it so RAM_START in save_log:
+
+; Request button needs to be implemented after main:
+
 .include "m128def.inc"
 
 .equ TEMPERATURE=31
@@ -57,9 +64,8 @@ validate_range:
 ; r17 is sensor value
 ; X is pointer in memory.
 save_log:
-	; INC x
 	; CHECK IF X > RAMEND if so set X to SRAM_START
-	st x, r17
+	st x+, r17
 	ret
 
 main:
@@ -77,9 +83,8 @@ main:
 		ldi r18, 10 ; min temp
 		ldi r19, 240 ; max temp
 		rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
-		mov r20, r17 ; saving result into register for later use.
-		out portd, r17 ; displaying result
 		rcall save_log
+		out portd, r17 ; displaying result
 
 		; Moisture
 		; in r17, pinb ; moisture value
@@ -87,9 +92,8 @@ main:
 		ldi r18, 20 ; min moisture
 		ldi r19, 200 ; max moisture
 		rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
-		mov r21, r17 ; saving result into register for later use.
-		out porte, r17 ; displaying result
 		rcall save_log
+		out porte, r17 ; displaying result
 
 		; Water level
 		; in r17, pinc ; water level value
@@ -97,9 +101,8 @@ main:
 		ldi r18, 5 ; min water level
 		ldi r19, 250 ; max water level
 		rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
-		mov r22, r17 ; saving result into register for later use.
-		sts portf, r17 ; displaying result
 		rcall save_log
+		sts portf, r17 ; displaying result
 
 		ldi r17, 0x00
 		rcall save_log
