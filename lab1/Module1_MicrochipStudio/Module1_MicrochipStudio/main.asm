@@ -1,18 +1,4 @@
-; Stuff needs to be done implement 
-
-; 16bit comparison to check if pointer is bigger 
-; then SRAM SIZE set it so RAM_START in save_log:
-
 .include "m128def.inc"
-
-.equ TEMPERATURE=31
-.equ MOISTURE=32
-.equ WATER_LEVEL=33
-
-.cseg
-.org 0x0050
-
-; Initialization of stuff
 
 ; Setting stack pointer (SP) value to RAMEND literally RAM_END end of SRAM.
 ; SP, is stack pointer used for subroutines which are basically local
@@ -32,7 +18,7 @@ out ddrc, r16
 ldi r16, 0xFF
 out ddrd, r16
 out ddre, r16
-sts ddrf, r16 ; PORT F is I/0 extended we can't use out it's out of range.
+sts ddrf, r16
 
 ; Settings up port G pin0 = output pin1 = input
 ldi r16, 0x01
@@ -42,12 +28,11 @@ sts ddrg, r16
 ldi xl, LOW(SRAM_START)
 ldi xh, HIGH(SRAM_START)
 
-jmp main
+rjmp main
 
-; It might come weird at first but since we dont have <= in AVR we have to use >=
-; r17 is sensor value
-; r18 is min value
-; r19 is max value
+; r17 -> sensor value
+; r18 -> min value
+; r19 -> max value
 validate_range:
 	cp r18, r17
 	brsh invalid_range ; r18 (min value) >= r17 (sensor_value) it will branch to invalid_range.
@@ -55,58 +40,63 @@ validate_range:
 	brsh invalid_range ; r17 (sensor_value) >= r19 (max value) it will branch to invalid_range.
 	rjmp end
 	invalid_range:
-		ldi r17, 0xFF
+	ldi r17, 0xFF
 	end:
-		ret ; will return to where it has been called from.
+	ret ; will return to where it has been called from.
 
-; r17 is sensor value
-; X is pointer in memory.
+clear_ports:
+	ldi r16, 0x00
+	out portd, r16
+	out porte, r16
+	sts portf, r16
+	ldi r16, 0b00
+	sts portg, r16
+	ret
+
+;r17 -> sensor value   
 save_log:
 	; CHECK IF X > RAMEND if so set X to SRAM_START
 	; cmp LOW(st), LOW(RAMEND)
 	; brge 
-	st x+, r17
+	; st x+, r17
 	ret
-
+   
 main:
-	lds r16, ping
-	ori r16, 0b11111101
-	cpi r16, 0xFF
+	lds r16, ping ; read from G i only care about last 2 bits / pins
+	ori r16, 0b01 ; bit0/pin0 is output so i dont care about it's value
+	cpi r16, 0b11 ; bit1/pin1 will change according to button so i check if its 11
 	breq accept_request
-	ldi r16, 0x00
-	sts portg, r16
+	rcall clear_ports ; clears leds makes them turnoff
 	rjmp main
-	accept_request:
-		sts portg, r16 ; Light up acknowledge led.
-		
-		; Temperature
-		; in r17, pina ; temp value
-		ldi r17, TEMPERATURE
-		ldi r18, 10 ; min temp
-		ldi r19, 240 ; max temp
-		rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
-		rcall save_log
-		out portd, r17 ; displaying result
+	
+accept_request:
+	sts portg, r16 ; Light up acknowledge led.
 
-		; Moisture
-		; in r17, pinb ; moisture value
-		ldi r17, MOISTURE
-		ldi r18, 20 ; min moisture
-		ldi r19, 200 ; max moisture
-		rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
-		rcall save_log
-		out porte, r17 ; displaying result
+	; Temperature
+	in r17, pina ; temp value
+	ldi r18, 10 ; min temp
+	ldi r19, 240 ; max temp
+	rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
+	rcall save_log
+	out portd, r17 ; displaying result
 
-		; Water level
-		; in r17, pinc ; water level value
-		ldi r17, WATER_LEVEL
-		ldi r18, 5 ; min water level
-		ldi r19, 250 ; max water level
-		rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
-		rcall save_log
-		sts portf, r17 ; displaying result
+	; Moisture
+	in r17, pinb ; moisture value
+	ldi r18, 20 ; min moisture
+	ldi r19, 200 ; max moisture
+	rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
+	rcall save_log
+	out porte, r17 ; displaying result
 
-		ldi r17, 0x00
-		rcall save_log
-
-		rjmp main
+	; Water level
+	in r17, pinc ; water level value
+	ldi r18, 5 ; min water level
+	ldi r19, 250 ; max water level
+	rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
+	rcall save_log
+	sts portf, r17 ; displaying result
+       
+	ldi r17, 0x00 ; write char 0 to memory
+	rcall save_log
+   
+	rjmp main
