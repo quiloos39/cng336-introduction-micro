@@ -25,8 +25,8 @@ ldi r16, 0x01
 sts ddrg, r16
 
 ; Setting pointer for logging.
-ldi xl, LOW(SRAM_START)
-ldi xh, HIGH(SRAM_START)
+ldi xl, 0xFF
+ldi xh, 0x10
 
 rjmp main
 
@@ -39,9 +39,9 @@ validate_range:
 	cp r17, r19
 	brsh invalid_range ; r17 (sensor_value) >= r19 (max value) it will branch to invalid_range.
 	rjmp end
-	invalid_range:
+invalid_range:
 	ldi r17, 0xFF
-	end:
+end:
 	ret ; will return to where it has been called from.
 
 clear_ports:
@@ -53,18 +53,29 @@ clear_ports:
 	sts portg, r16
 	ret
 
+;10FF max
+;1000 pointer
+
 ;r17 -> sensor value   
 save_log:
-	; CHECK IF X > RAMEND if so set X to SRAM_START
-	; cmp LOW(st), LOW(RAMEND)
-	; brge 
-	; st x+, r17
+	adiw xh:xl, 1
+	ldi r18, LOW(RAMEND)
+	ldi r19, HIGH(RAMEND)
+	cp r18, xl
+	cpc r19, xh
+	brlo reset_X
+	rjmp save
+reset_x:
+	ldi xl, LOW(SRAM_START)
+	ldi xh, HIGH(SRAM_START)
+save:
+	st X, r17
 	ret
-   
+
 main:
 	lds r16, ping ; read from G i only care about last 2 bits / pins
-	ori r16, 0b01 ; bit0/pin0 is output so i dont care about it's value
-	cpi r16, 0b11 ; bit1/pin1 will change according to button so i check if its 11
+	ori r16, 0b11111101 ; bit0/pin0 is output so i dont care about it's value
+	cpi r16, 0xFF ; bit1/pin1 will change according to button so i check if its 11
 	breq accept_request
 	rcall clear_ports ; clears leds makes them turnoff
 	rjmp main
