@@ -25,8 +25,8 @@ ldi r16, 0x01
 sts ddrg, r16
 
 ; Setting pointer for logging.
-ldi xl, 0xFF
-ldi xh, 0x10
+ldi XL, 0xFF
+ldi XH, 0x10
 
 rjmp main
 
@@ -58,16 +58,16 @@ clear_ports:
 
 ;r17 -> sensor value   
 save_log:
-	adiw xh:xl, 1
-	ldi r18, LOW(RAMEND)-4
+	adiw XH:XL, 1
+	ldi r18, LOW(RAMEND)
 	ldi r19, HIGH(RAMEND)
-	cp r18, xl
-	cpc r19, xh
+	cp r18, XL
+	cpc r19, XH
 	brlo reset_X
 	rjmp save
 reset_x:
-	ldi xl, LOW(SRAM_START)
-	ldi xh, HIGH(SRAM_START)
+	ldi XL, LOW(SRAM_START)
+	ldi XH, HIGH(SRAM_START)
 save:
 	st X, r17
 	ret
@@ -89,7 +89,7 @@ accept_request:
 	ldi r19, 240 ; max temp
 	rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
 	rcall save_log
-	sts portd, r17 ; displaying result
+	out portd, r17 ; displaying result
 
 	; Moisture
 	in r17, pinb ; moisture value
@@ -97,7 +97,7 @@ accept_request:
 	ldi r19, 200 ; max moisture
 	rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
 	rcall save_log
-	sts porte, r17 ; displaying result
+	out porte, r17 ; displaying result
 
 	; Water level
 	in r17, pinc ; water level value
