@@ -59,7 +59,7 @@ clear_ports:
 ;r17 -> sensor value   
 save_log:
 	adiw xh:xl, 1
-	ldi r18, LOW(RAMEND)
+	ldi r18, LOW(RAMEND)-4
 	ldi r19, HIGH(RAMEND)
 	cp r18, xl
 	cpc r19, xh
@@ -74,7 +74,7 @@ save:
 
 main:
 	lds r16, ping ; read from G i only care about last 2 bits / pins
-	ori r16, 0b11111101 ; bit0/pin0 is output so i dont care about it's value
+	ori r16, 0b11111101 ; bit0/pin0 is output so dont care about it's value
 	cpi r16, 0xFF ; bit1/pin1 will change according to button so i check if its 11
 	breq accept_request
 	rcall clear_ports ; clears leds makes them turnoff
@@ -89,7 +89,7 @@ accept_request:
 	ldi r19, 240 ; max temp
 	rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
 	rcall save_log
-	out portd, r17 ; displaying result
+	sts portd, r17 ; displaying result
 
 	; Moisture
 	in r17, pinb ; moisture value
@@ -97,7 +97,7 @@ accept_request:
 	ldi r19, 200 ; max moisture
 	rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
 	rcall save_log
-	out porte, r17 ; displaying result
+	sts porte, r17 ; displaying result
 
 	; Water level
 	in r17, pinc ; water level value
