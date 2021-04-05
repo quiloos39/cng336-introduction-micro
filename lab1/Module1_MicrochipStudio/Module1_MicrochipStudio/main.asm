@@ -25,8 +25,8 @@ ldi r16, 0x01
 sts ddrg, r16
 
 ; Setting pointer for logging.
-ldi XL, 0xFF
-ldi XH, 0x10
+ldi XL, LOW(SRAM_START)
+ldi XH, HIGH(SRAM_START)
 
 rjmp main
 
@@ -58,8 +58,7 @@ clear_ports:
 
 ;r17 -> sensor value   
 save_log:
-	adiw XH:XL, 1
-	ldi r18, LOW(RAMEND)
+	ldi r18, LOW(RAMEND)-4
 	ldi r19, HIGH(RAMEND)
 	cp r18, XL
 	cpc r19, XH
@@ -69,7 +68,7 @@ reset_x:
 	ldi XL, LOW(SRAM_START)
 	ldi XH, HIGH(SRAM_START)
 save:
-	st X, r17
+	st X+, r17
 	ret
 
 main:
