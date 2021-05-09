@@ -61,14 +61,11 @@
 	out sph, r16
 .endmacro
 
-.macro SERVICE_READOUT
-.endmacro
-
 ; CHECK_CONTROL (number, label_true, label_false)
 .macro CHECK_CONTROL
     in r16, CONTROL_SWITCH
     andi r16, 0b00000111 ; r16 = 0000 0xxx
-    cmpi r16, @0
+    cpi r16, @0
     brne @1 ; r16 == number ? label_true : label_false
 .endmacro
 
@@ -90,7 +87,7 @@
 ; CHECK_COMMAND_TYPE (COMMAND = r17, label_true, label_false)
 .macro CHECK_COMMAND_TYPE
     andi r17, 0b11100000 ; xxx0 0000
-    cmpi r17, @0
+    cpi r17, @0
     breq @1
     rjmp @2 
 .endmacro
@@ -108,6 +105,11 @@ rjmp configure
 .org 0x100
 
 ; Helper functions
+
+crc3:
+	ret
+crc11:
+	ret
 
 ; crc3_check(r16 = control): (r18 = boolean)
 crc3_check:
@@ -139,6 +141,7 @@ crc11_check_end:
 
 ; Writes to MEM
 write_mem:
+	push r16
     ret
 
 init:
@@ -153,8 +156,8 @@ repeat_request:
 service_readout:
     ret
 
-; stack_empty() : (r18 = boolean)
-stack_empty:
+; is_stack_empty() : (r18 = boolean)
+is_stack_empty:
 	ldi r18, 1
 	ret
 
@@ -198,12 +201,18 @@ check_recieve_two_pass:
 	; if (r16 = PACKET_IN) == COMMAND_TYPE
 	; rjmp is_command_type
 	; else rjmp not_command_type
-	IS_COMMAND_TYPE is_command_type, not_command_type
+	IS_COMMAND_TYPE command_type, not_command_type
 
-not_command_type:	
+not_command_type:
+	rcall is_stack_empty
+	IF_JUMP not_command_type_end, not_command_type_fail
+not_command_type_fail:
+	pop r17
+not_command_type_end:
+	rcall write_mem
     rjmp start_readout
 
-is_command_type:
+command_type:
     mov r16, r17 ; Copy command to right place
 	pop r16
 
