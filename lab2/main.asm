@@ -1,5 +1,9 @@
 .include "m128def.inc"
 
+; Testing
+.EQU DATA_TYPE=1 << 7
+.EQU CONTROL_TYPE=0 << 7
+
 .EQU POLY_KEY=0b000110
 .EQU POLY_KEY_LEN=5
 
@@ -61,29 +65,6 @@
 	out sph, r16
 .endmacro
 
-; CHECK_CONTROL (number, label_true, label_false)
-.macro CHECK_CONTROL
-    in r16, CONTROL_SWITCH
-    andi r16, 0b00000111 ; r16 = 0000 0xxx
-    cpi r16, @0
-    brne @1 ; r16 == number ? label_true : label_false
-.endmacro
-
-; CHECK_RECIEVE (label_true, label_false)
-.macro CHECK_RECIEVE
-	in r16, RECIEVE_BTN
-	sbrc r16, 3 ; Skip if RECIEVE_BTN[3] == 0
-	rjmp @1 ; jump label_false
-    rjmp @0 ; jump label_true
-.endmacro
-
-; IF_JUMP (label_true, label_false)
-.macro IF_JUMP
-	sbrc r18, 0
-	rjmp @1 ; jump label_false
-    rjmp @0 ; jump label_true
-.endmacro
-
 ; CHECK_COMMAND_TYPE (COMMAND = r17, label_true, label_false)
 .macro CHECK_COMMAND_TYPE
     andi r17, 0b11100000 ; xxx0 0000
@@ -92,17 +73,11 @@
     rjmp @2 
 .endmacro
 
-.macro IS_COMMAND_TYPE
-    sbrc r16, 7
-    rjmp @0 ; jump label_true
-    rjmp @1 ; jump label_false
-.endmacro
-
 .cseg
-.org 0x00
+.org 0x0000
 rjmp configure
 
-.org 0x100
+.org 0x0100
 
 ; Helper functions
 
@@ -111,12 +86,12 @@ crc3:
 crc11:
 	ret
 
-; crc3_check(r16 = control): (r18 = boolean)
+; crc3_check(r17 = control): (r18 = boolean)
 crc3_check:
-    mov r18, r16
-    andi r16, 0b11100000 ; xxx0 0000
-    rcall crc3 ; r16 = crc3(control = r16)
-    cp r16, r18
+    mov r18, r17
+    andi r17, 0b11100000 ; xxx0 0000
+    rcall crc3 ; r17 = crc3(control = r17)
+    cp r17, r18
     breq crc3_check_true
     ldi r18, 0
     rjmp crc3_check_end
@@ -137,11 +112,6 @@ crc11_check:
 crc11_check_true:
     ldi r18, 1
 crc11_check_end:
-    ret
-
-; Writes to MEM
-write_mem:
-	push r16
     ret
 
 init:
@@ -169,70 +139,64 @@ configure:
 main:
 	INIT_STACK
     rcall init
-	rcall write_mem
+	push r16
 
 start_readout: 
 	rcall service_readout
 
-	; if (r16 = control_pins) == 1
-	; rjmp check_control_pass
-	; else rjmp main
-	CHECK_CONTROL 1, check_control_pass, main
-
-check_control_pass:
-	sbi READY_LED, 4 ; READY = ON
-
-	; if (r16 = recieve_pin) == 1
-	; rjmp check_recieve_one_pass
-	; else rjmp start_readout
-	CHECK_RECIEVE check_recieve_one_pass, start_readout
-
-check_recieve_one_pass:
-
-	; if (r16 = recieve_pin) == 0
-	; rjmp check_recieve_two_pass
-	; else rjmp check_recieve_one_pass
-	CHECK_RECIEVE check_recieve_one_pass, check_recieve_two_pass
+	ldi r16, 1 ; Testing remove this after test.
 	
-check_recieve_two_pass:
-	cbi READY_LED, 4 ; Set ready off
-	in r16, PACKET_IN  ; r16 = CAPTURE_PACKET_IN
-	
-	; if (r16 = PACKET_IN) == COMMAND_TYPE
-	; rjmp is_command_type
-	; else rjmp not_command_type
-	IS_COMMAND_TYPE command_type, not_command_type
+	;in r16, CONTROL_SWITCH
+    andi r16, 0b00000111 ; r16 = 0000 0xxx.
+    cpi r16, 1
+    brne main ; R16 is not equal to 1 jump to main.
+
+	sbi READY_LED, 4 ; Set READY on.
+
+	ldi r16, 0xFF ; Testing remove this after test.
+
+	;in r16, RECIEVE_BTN
+	sbrs r16, 3
+    rjmp start_readout ; Skip if RECEIVE_BTN == 1.
+
+recieve_check:
+
+	;in r16, RECIEVE_BTN
+	ldi r16, 0x00 ; Testing remove this after test.
+	sbrc r16, 3
+	rjmp recieve_check ; Skip if RECIEVE_BTN == 0
+
+	cbi READY_LED, 4 ; Set READY off.
+	; in r17, PACKET_IN  ; r16 = CAPTURE_PACKET_IN.
+	ldi r17, CONTROL_TYPE ; Testing remove this after test.
+
+	sbrc r17, 7 ; Skip if PACKET_IN is control type.
+    rjmp not_command_type
+    rjmp tos_has_data
 
 not_command_type:
 	rcall is_stack_empty
-	IF_JUMP not_command_type_end, not_command_type_fail
-not_command_type_fail:
-	pop r17
-not_command_type_end:
-	rcall write_mem
+	sbrs r18, 0
+	pop r18 ; Skip if stack is empty.
+	push r17
     rjmp start_readout
 
-command_type:
-    mov r16, r17 ; Copy command to right place
+tos_has_data:
 	pop r16
+	ldi r16, CONTROL_TYPE ; r16 = TOS.
 
-	; if (r16 = TOP) == DATA_TYPE
-	; rjmp check11
-	; else rjmp check3
-	IS_COMMAND_TYPE check3, check11
+	sbrc r16, 7
+    rjmp check11 ; Skip if TOS is control type.
+    rjmp check3
 
 check11:
 	; crc11_check(r16 = data, r17 = control): (r18 = boolean)
     rcall crc11_check
 
-	; if r18 == 1
-	; rjmp state_log_request
-	; else rjmp check11_fail
-	IF_JUMP state_log_request, check11_fail
-
-check11_fail:
-    ; Pop TOS
-    rcall repeat_request
+	sbrc r18, 0
+	rjmp state_log_request ; Skip if crc11_check fails.
+	pop r18
+	rjmp repeat_request
 
 state_log_request:
 	; if (r17 = control) == LOG_REQUEST
@@ -248,30 +212,34 @@ transmit_packet:
 
 
 check3:
-	; crc3_check(r16 = control): (r18 = boolean)
-	rcall crc3_check
+	; crc3_check(r17 = control): (r18 = boolean)
+	; rcall crc3_check
+	ldi r18, 1
 
-	; if r18 == 1
-	; rjmp state_acknowledge
-	; else rjmp repeat_request
-    IF_JUMP state_acknowledge, repeat_request
+	sbrs r18, 0 
+	rjmp repeat_request ; Skip if crc3_check passes.
 
-state_acknowledge:
+	ldi r17, ACKNOWLEDGE
 	; if (r17 = control) == ACKNOWLEDGE
 	; rjmp state_acknowledge_pass
 	; else rjmp state_repeat
-    CHECK_COMMAND_TYPE ACKNOWLEDGE, state_acknowledge_pass, state_repeat
+    CHECK_COMMAND_TYPE ACKNOWLEDGE, state_acknowledge_pass, state_acknowledge_fail
 
 state_acknowledge_pass:
+	rcall is_stack_empty
+	sbrc r18, 0
+	rjmp start_readout ; Skip if stack is NOT empty.
+	pop r18
 	rjmp start_readout
 
-state_repeat:
+state_acknowledge_fail:
+	CHECK_COMMAND_TYPE ERROR_REPEAT, state_repeat_pass, start_readout
 	rjmp transmit_packet
-	
 
-
-	
-
-
-	 
-
+state_repeat_pass:
+	rcall is_stack_empty
+	sbrc r18, 0
+	rjmp start_readout
+	pop r17
+	out PACKET_OUT, r17
+	rjmp start_readout
