@@ -82,31 +82,31 @@ main:
 accept_request:
 	sts portg, r16 ; Light up acknowledge led.
 
-	; Temperature
-	in r17, pina ; temp value
-	ldi r18, 10 ; min temp
-	ldi r19, 240 ; max temp
-	rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
-	rcall save_log
-	out portd, r17 ; displaying result
+  ; Temperature
+  in r17, pina ; temp value
+  ldi r18, 10 ; min temp
+  ldi r19, 240 ; max temp
+  rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
+  rcall save_log
+  out portd, r17 ; displaying result
 
-	; Moisture
-	in r17, pinb ; moisture value
-	ldi r18, 20 ; min moisture
-	ldi r19, 200 ; max moisture
-	rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
-	rcall save_log
-	out porte, r17 ; displaying result
+  ; Moisture
+  in r17, pinb ; moisture value
+  ldi r18, 20 ; min moisture
+  ldi r19, 200 ; max moisture
+  rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
+  rcall save_log
+  out porte, r17 ; displaying result
 
-	; Water level
-	in r17, pinc ; water level value
-	ldi r18, 5 ; min water level
-	ldi r19, 250 ; max water level
-	rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
-	rcall save_log
-	sts portf, r17 ; displaying result
-       
-	ldi r17, 0x00 ; write char 0 to memory
-	rcall save_log
-   
-	rjmp main
+  ; Water level
+  in r17, pinc ; water level value
+  ldi r18, 5 ; min water level
+  ldi r19, 250 ; max water level
+  rcall validate_range ; validate range: if valid keep value if not set r17 = 0xFF
+  rcall save_log
+  sts portf, r17 ; displaying result
+        
+  ldi r17, 0x00 ; write char 0 to memory
+  rcall save_log
+    
+  rjmp main
