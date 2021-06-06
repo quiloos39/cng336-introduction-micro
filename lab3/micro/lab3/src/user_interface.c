@@ -2,11 +2,11 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdbool.h>
+
+#define USER_INTERFACE_DEBUG 1
 
 // Defining buffer sizes.
 #define USER_OUTPUT_BUFFER_SIZE 128
@@ -21,8 +21,9 @@ char userOutputBuffer[USER_OUTPUT_BUFFER_SIZE];
 uint8_t userOutputBufferIndex = 0;
 bool userOutputBufferActive = false;
 
+
 // Defining memory pointers.
-uint8_t *x = (uint8_t *) 0x0590;
+uint8_t *x = (uint8_t *) 0x0500;
 uint8_t *iterator = (uint8_t *) 0x0500;
 
 // Defining memory dump flag this is needed
@@ -38,7 +39,6 @@ void enableTransmit() {
 
 // Configures user interface.
 void configureUserInterface() {
-	enableTransmit();
 	UBRR0L = 51;
 }
 
@@ -46,7 +46,6 @@ void configureUserInterface() {
 void enableRecieve() {
 	UCSR0B &= ~((1 << TXCIE0) | (1 << TXEN0)); // Disable transmit.
 	UCSR0B |= (1 << RXCIE0) | (1 << RXEN0); // Enable receive.
-	userOutputBufferActive = false;
 }
 
 // Clears user input buffer.
@@ -143,7 +142,10 @@ ISR(USART0_TX_vect) {
 		if (!memoryDumpActive) {
 			// Clearing buffer.
 			clearUserOutputBuffer();
-			enableRecieve();
+			userOutputBufferActive = false;
+			if (!USER_INTERFACE_DEBUG) {
+				enableRecieve();
+			}
 		}
 		// MemoryDump mode uses buffer but in a fancy way.
 		// Reason we have MemoryDump mode and Normal mode is
@@ -163,8 +165,8 @@ ISR(USART0_TX_vect) {
 				formatMemoryEntry(iterator, message);
 				strcat(userOutputBuffer, message);
 				
-				if (iterator > (0x10FF - 50) && iterator < 0x10FF) {
-					iterator = 0x1100;
+				if (iterator > (uint8_t *) (0x10FF - 50) && iterator < (uint8_t *) 0x10FF) {
+					iterator = (uint8_t *) 0x1100;
 				}
 				
 				iterator++;
@@ -173,7 +175,10 @@ ISR(USART0_TX_vect) {
 			}
 			// We finished iterating over all iterators
 			else {
-				enableRecieve();
+				if (!USER_INTERFACE_DEBUG) {
+					enableRecieve();
+				}
+				userOutputBufferActive = false;
 				iterator = (uint8_t *) 0x0500; // Reset iterator
 				memoryDumpActive = false; // Disable memory dump.
 				sendUserMessageAsync("\n\r");

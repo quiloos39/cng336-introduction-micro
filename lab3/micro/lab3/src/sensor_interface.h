@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "crc.h"
-#include "./user_interface.h"
+
+#include "./crc.h"
 
 #define ACK_PACKAGE (1 << 6)
 #define RESET_IDX 0
@@ -36,24 +36,22 @@ void debugUserInterface(char *mesasge) {
 }
 
 void enableSensorTransmit() {
-    UCSR1B |= (1 << TXCIE1) | (1 << TXEN1) ;
-    UCSR1B &= ~((1 << RXCIE1) | (1 << RXEN1));
+	UCSR1B |= (1 << TXCIE1) | (1 << TXEN1) ;
+	UCSR1B &= ~((1 << RXCIE1) | (1 << RXEN1));
 }
 
 void enableSensorReceive() {
-    UCSR1B |= (1 << RXCIE1) | (1 << RXEN1);
+	UCSR1B |= (1 << RXCIE1) | (1 << RXEN1);
 	UCSR1B &= ~((1 << TXCIE1) | (1 << TXEN1));
 }
 
 void configureSensorInterface() {
 	UBRR1L = 51;
-	enableSensorTransmit();
-    transmitPacket(0 | crc3(0)); // send reset package
-	// debugUserInterface("Sending reset request.\n\r\n\r");
 }
 
 void transmitPacket(uint8_t packet) {
-	char message[4 + 1];
+	enableSensorTransmit();
+	char message[6 + 1];
     sprintf(message, "> 0x%.2X\n\r", packet);
     strcat(sensor_output_buffer, message);
     UDR1 = sensor_output_buffer[sensor_output_buffer_index++];
@@ -85,8 +83,6 @@ void logData(uint8_t packet) {
 	// FILL IN
 }
 
-
-// '0x00' -> 0000 0000
 uint8_t convertBufferToPacket(char* buf) {
     // convert buffer into uint_8 packet
     char c1 = buf[2];
@@ -115,13 +111,10 @@ uint8_t convertBufferToPacket(char* buf) {
 
 
 void handleRequest() {
-	debugUserInterface("Packet recieved handing request.\r\n\n");
+	sendUserMessageAsync("Packet received handing request.\r\n\n");
+	
     sensor_input_buffer[sensor_input_buffer_index] = '\0';
     uint8_t packet_in = convertBufferToPacket(sensor_input_buffer);
-	
-	//char message[16];
-	//sprintf(message, "\r\n%X\r\n\r\n", packet_in);
-	//debugUserInterface(message);
 	
     // Is PACKET_IN data type ? 
     if (!isCommand(packet_in)) {
@@ -174,7 +167,6 @@ void clearSensorOutputBuffer() {
     for (uint8_t i = 0; i < SENSOR_OUTPUT_BUFFER_SIZE;  i++) {
         sensor_output_buffer[i] = 0;
     }
-    
     sensor_output_buffer_index = 0;
 }
 
@@ -182,6 +174,7 @@ ISR(USART1_RX_vect) {
     char userInput = UDR1; // Saves user input to buffer.
 	if (userInput == '\r') {
        handleRequest();
+	   sensor_input_buffer_index = 0;
     } else {
         sensor_input_buffer[sensor_input_buffer_index] = userInput;
         sensor_input_buffer_index = (sensor_input_buffer_index + 1) % SENSOR_INPUT_BUFFER_SIZE;
