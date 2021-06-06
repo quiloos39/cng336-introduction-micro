@@ -29,12 +29,6 @@ uint8_t sensor_output_buffer_index = 0;
 
 uint8_t last_packet;
 
-void debugUserInterface(char *mesasge) {
-	sendUserMessageAsync("\n\r");
-	sendUserMessageAsync(mesasge);
-	displayMenu();
-}
-
 void enableSensorTransmit() {
 	UCSR1B |= (1 << TXCIE1) | (1 << TXEN1) ;
 	UCSR1B &= ~((1 << RXCIE1) | (1 << RXEN1));
@@ -52,7 +46,7 @@ void configureSensorInterface() {
 void transmitPacket(uint8_t packet) {
 	enableSensorTransmit();
 	char message[6 + 1];
-    sprintf(message, "> 0x%.2X\n\r", packet);
+    sprintf(message, "> 0x%.2X\r\n", packet);
     strcat(sensor_output_buffer, message);
     UDR1 = sensor_output_buffer[sensor_output_buffer_index++];
 }
@@ -111,14 +105,17 @@ uint8_t convertBufferToPacket(char* buf) {
 
 
 void handleRequest() {
-	sendUserMessageAsync("Packet received handing request.\r\n\n");
 	
     sensor_input_buffer[sensor_input_buffer_index] = '\0';
     uint8_t packet_in = convertBufferToPacket(sensor_input_buffer);
 	
+	char message[32];
+	sprintf(message, "Packet received with value %.2X.\r\n", packet_in);
+	sendUserMessageAsync(message);
+		
     // Is PACKET_IN data type ? 
     if (!isCommand(packet_in)) {
-		// debugUserInterface("Received data packet.\r\n");
+		sendUserMessageAsync("Received data packet.\r\n");
         last_packet = packet_in;
         return;
     }

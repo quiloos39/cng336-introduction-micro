@@ -2,11 +2,10 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
-
-#define USER_INTERFACE_DEBUG 1
+#include <string.h>
 
 // Defining buffer sizes.
 #define USER_OUTPUT_BUFFER_SIZE 128
@@ -20,7 +19,6 @@ uint8_t userInputBufferIndex = 0;
 char userOutputBuffer[USER_OUTPUT_BUFFER_SIZE];
 uint8_t userOutputBufferIndex = 0;
 bool userOutputBufferActive = false;
-
 
 // Defining memory pointers.
 uint8_t *x = (uint8_t *) 0x0500;
@@ -76,14 +74,14 @@ void sendUserMessageAsync(const char *message) {
 
 // Formats given message into format of address:value where address and value are in hex.
 void formatMemoryEntry(uint8_t *x, char *message) {
-	sprintf(message, "0x%.4X:0x%.2X\n\r", x, *x);
+	sprintf(message, "0x%.4X:0x%.2X\r\n", x, *x);
 }
 
 void displayMenu() {
 	sendUserMessageAsync(
-	"1) Memory dump\n\r"\
-	"2) Last entry\n\r"\
-	"\n\r"\
+	"1) Memory dump\r\n"\
+	"2) Last entry\r\n"\
+	"\r\n"\
 	"Select your option: "
 	);
 }
@@ -100,12 +98,12 @@ void printLastEntry() {
 	char message[16];
 	formatMemoryEntry(x, message);
 	sendUserMessageAsync(message);
-	sendUserMessageAsync("\n\r");
+	sendUserMessageAsync("\r\n");
 	displayMenu();
 }
 
 void printInvalidSelection() {
-	sendUserMessageAsync("\n\rInvalid selection\n\r\n\r");
+	sendUserMessageAsync("\r\nInvalid selection\r\n\r\n");
 	displayMenu();
 }
 
@@ -181,7 +179,7 @@ ISR(USART0_TX_vect) {
 				userOutputBufferActive = false;
 				iterator = (uint8_t *) 0x0500; // Reset iterator
 				memoryDumpActive = false; // Disable memory dump.
-				sendUserMessageAsync("\n\r");
+				sendUserMessageAsync("\r\n");
 				displayMenu();
 			}
 		}
