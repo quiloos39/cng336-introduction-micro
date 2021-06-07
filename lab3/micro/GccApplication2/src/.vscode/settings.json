@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "user_interface.h": "c",
+        "sensor_interface.h": "c",
+        "terminal.h": "c",
+        "stdbool.h": "c"
+    }
+}

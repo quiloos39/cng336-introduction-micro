@@ -18,7 +18,7 @@ uint8_t crc11(uint8_t bh, uint8_t bl) {
 	while (counter < (16-5)) {
 		if (bh & 0b10000000) {
 			bh ^= CRC_POLY;
-		} else {
+			} else {
 			rollLeft(&bh, &bl);
 			counter++;
 		}
