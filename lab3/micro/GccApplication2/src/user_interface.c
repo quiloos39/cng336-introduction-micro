@@ -39,19 +39,16 @@ bool memoryDumpActive = false;
 
 
 void startTimer() {
-	char msg[16];
 	switch(sensor_watchdog) {
 		case 1:
-		setupTimer1(CLKS_0_5);
-		break;
-
+			setupTimer1(CLKS_0_5);
+			break;
 		case 2:
-		setupTimer1(CLKS_1_0);
-		break;
-
+			setupTimer1(CLKS_1_0);
+			break;
 		case 3:
-		setupTimer1(CLKS_2_0);
-		break;
+			setupTimer1(CLKS_2_0);
+			break;
 	}
 }
 
@@ -61,6 +58,7 @@ void enableTransmit() {
 	UCSR0B |= (1 << TXCIE0) | (1 << TXEN0); // Enable transmit.
 }
 
+// Checks if there is config in EEPROM.
 bool isConfigSet(uint8_t* config) {
 	return !(config[0] == 0xFF || config[1] == 0xFF || 
 			config[2] == 0xFF || config[3] == 0xFF);
@@ -68,13 +66,14 @@ bool isConfigSet(uint8_t* config) {
 
 // Configures user interface.
 void configureUserInterface() {
-	UBRR0L = 51;
+	UBRR0L = 51; // Sets BAUD rate to 9600 for 8MHz.
 	
 	userInputBuffer = newBuffer(USER_INPUT_BUFFER_SIZE);
 	userOutputBuffer = newBuffer(USER_OUTPUT_BUFFER_SIZE);
 	uint8_t config[4];
 	
 	eeprom_busy_wait();
+	// array, address, size
 	eeprom_read_block(config, (uint8_t *) 0x01, sizeof(config));
 	
 	if (!isConfigSet(config)) {
@@ -84,14 +83,14 @@ void configureUserInterface() {
 		sendUserMessageAsync("\rEnter MS WD Choice (& period):\r1) 30ms\r2) 250ms\r3) 500ms\r\n");
 
 	} else {
-		sendUserMessageAsync("There is config \r\n");
+		sendUserMessageAsync("Config found \r\n");
 		mcu_watchdog = config[0];
 		sensor_watchdog = config[2];
 		shouldReadSlave = false;
 		shouldReadMaster = false;
-		
 		startTimer();
 		displayMenu();
+		resetRequest();
 	};
 	
 }
@@ -102,20 +101,6 @@ void enableRecieve() {
 	UCSR0B &= ~((1 << TXCIE0) | (1 << TXEN0)); // Disable transmit.
 	UCSR0B |= (1 << RXCIE0) | (1 << RXEN0); // Enable receive.
 }
-
-void sendUserMessageSync(const char *message) { // send a message (synchronously)
-	uint8_t tmp = UCSR0B;
-	
-	UCSR0B = (1 << TXEN0);
-	for (uint8_t i = 0 ; i < strlen(message); i++) {
-		UDR0 = message[i];
-		while (!CHECK_PIN(UCSR0A, TXC0));
-		UCSR0A |= (1 << TXC0);
-	}
-
-	UCSR0B = tmp;
-}
-
 
 // Appends message to user output buffer to be displayed.
 void sendUserMessageAsync(const char *message) {
@@ -189,6 +174,7 @@ void handleUserInput() {
 			
 			eeprom_busy_wait();
 			// 0x01 0x02
+			// address, value
 			eeprom_write_byte((uint8_t *) 0x01, mcu_watchdog);
 			eeprom_write_byte((uint8_t *) 0x02, 0);
 			

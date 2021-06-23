@@ -32,6 +32,7 @@ Buffer *sensorInputBuffer;
 // Defining sensor output buffer.
 Buffer *sensorOutputBuffer;
 
+// Last packet received.
 uint8_t last_packet;
 
 void enableSensorTransmit() {
@@ -66,7 +67,6 @@ void repeatRequest() {
 	transmitPacket(msg);
 }
 
-
 uint8_t isCommand(uint8_t packet) {
 	return !(0b10000000 & packet);
 }
@@ -85,10 +85,10 @@ void logData(uint8_t packet) {
 	*x = packet;
 	x++;
 
-	if (x == DATA_INTERNAL_END) {
-		x = DATA_EXTERNAL_START;
-	} else if (x == DATA_EXTERNAL_END) {
-		x = DATA_START;
+	if (x == (uint8_t *) DATA_INTERNAL_END) {
+		x = (uint8_t *) DATA_EXTERNAL_START;
+	} else if (x == (uint8_t *) DATA_EXTERNAL_END) {
+		x = (uint8_t *) DATA_START;
 	}
 }
 
@@ -96,7 +96,8 @@ void resetRequest() {
 	transmitPacket(0 | crc3(0)); // send reset package
 }
 
-// Data sensor
+// Sensor input handling.
+// ----------------------
 
 void handleSensorData() {
 	resetTimer1();
@@ -163,6 +164,9 @@ ISR(USART1_RX_vect) {
 	char input = UDR1; // Saves user input to buffer.
 	inputHandler(input, sensorInputBuffer, handleSensorData);
 };
+
+// Sensor output handling.
+// -----------------------
 
 void handleSensorOutputFinished() {
 	enableSensorReceive();
