@@ -40,7 +40,6 @@ bool shouldReadMaster = true;
 // into buffer.
 bool memoryDumpActive = false;
 
-
 void startTimer() {
 	switch(sensor_watchdog) {
 		case 1:
@@ -225,6 +224,7 @@ void handleUserOutputFinished() {
 			userOutputBuffer -> writeActive = false;
 			iterator = (uint8_t * ) 0x0500; // Reset iterator
 			memoryDumpActive = false; // Disable memory dump.
+
 			sendUserMessageAsync("\n");
 			displayMenu();
 		}

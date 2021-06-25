@@ -15,7 +15,7 @@ inline void setupTimer1() {
 		(1 << CS12)  |
 		(1 << CS10);  
 	// OCR1A = 39063;
-	OCR1A = 1;
+	OCR1A = 20;
 	TIMSK |= (1 << OCIE1A);
 }
 

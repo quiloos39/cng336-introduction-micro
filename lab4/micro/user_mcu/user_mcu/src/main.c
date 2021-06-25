@@ -1,5 +1,5 @@
 #define F_CPU 8e6
-#define BUFFER_SIZE 80
+#define BUFFER_SIZE 128
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -31,7 +31,7 @@ typedef struct {
 	char message[BUFFER_SIZE];
 	uint8_t read_head;
 	uint8_t write_head;
-	bool locked;
+	bool isReset;
 } Buffer;
 
 volatile Buffer inputBuffer;
@@ -41,12 +41,14 @@ Buffer initBuffer() {
 	buffer.read_head = 0;
 	buffer.write_head = 0;
 	buffer.message[0] = '\0';
+	buffer.isReset = 1;
 
 	return buffer;
 
 }
 
 void pushBuffer(Buffer *b, char data) {
+	b->isReset = 0;
 	b->message[b->write_head++] = data;
 	if (b->write_head == BUFFER_SIZE) {
 		b->write_head = 0;
@@ -54,7 +56,11 @@ void pushBuffer(Buffer *b, char data) {
 }
 
 uint8_t popBuffer(Buffer *b) {
-	uint8_t data = b->message[b->read_head++];
+	
+	uint8_t data = b->message[b->read_head];
+	//b->message[b->read_head] = '\0';
+	b->read_head++;
+	
 	if (b->read_head == BUFFER_SIZE) {
 		b->read_head = 0;
 	}
@@ -67,6 +73,7 @@ void resetBuffer(Buffer *b) {
 	b->read_head = 0;
 	b->write_head = 0;
 	b->message[0] = '\0';
+	b->isReset = 1;
 }	
 
 // Last entry not found.
@@ -76,20 +83,21 @@ void resetBuffer(Buffer *b) {
 ISR(USART0_RX_vect) {
 	char input = UDR0;
 	pushBuffer(&inputBuffer, input);
-	if (input == '\0') {
-		resetBuffer(&inputBuffer);
-	}
 }
 
 ISR(TIMER1_COMPA_vect) {
-	char data = popBuffer(&inputBuffer);
-	lcd = LCD_putchar(lcd, data);
+	if (inputBuffer.read_head != inputBuffer.write_head )  {
+		char data = popBuffer(&inputBuffer);
+		lcd = LCD_putchar(lcd, data);
+	}
 }
 
 ISR(INT7_vect) {
 	char userInput = getPressedKey(); // Notice returns ascii char not number.
 	if (userInput == '#') {
-		// LCD_clear(lcd);
+		
+		//LCD_clear(lcd);
+		//LCD_sendcmd(lcd, LCD_LINE_1);
 		UDR0 = '\r';
 	} else {
 		UDR0 = userInput;
