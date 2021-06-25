@@ -55,7 +55,7 @@ void configureSensorInterface() {
 void transmitPacket(uint8_t packet) {
 	enableSensorTransmit();
 	char message[16 + 1];
-	sprintf(message, "> 0x%.2X\r\n", packet);
+	sprintf(message, "0x%.2X\r\n", packet);
 	bufferWrite(sensorOutputBuffer, message);
 	UDR1 = outputWrite(sensorOutputBuffer);
 }
@@ -102,14 +102,19 @@ void resetRequest() {
 void handleSensorData() {
 	resetTimer1();
 	uint8_t packet_in = strtol(sensorInputBuffer -> buffer, NULL, 16);
-
-	char message[32];
-	sprintf(message, "Packet received %.2X\r\n", packet_in);
-	sendUserMessageAsync(message);
+	
+	if (DEBUG_LAB) {
+		char message[32];
+		sprintf(message, "Packet received %.2X\n", packet_in);
+		sendUserMessageAsync(message);
+	}
+	
 
 	// Is PACKET_IN data type ?
 	if (!isCommand(packet_in)) {
-		sendUserMessageAsync("Received data packet.\r\n");
+		if (DEBUG_LAB) {
+			sendUserMessageAsync("Received data packet.\n");
+		}
 		last_packet = packet_in;
 		return;
 	}
@@ -117,20 +122,28 @@ void handleSensorData() {
 	// PACKET_IN: command type, LAST_PACKET: data type.
 	if (!isCommand(last_packet)) {
 		// CRC11 pass.
-		sendUserMessageAsync("Last packet is a data\r\n");
+		if (DEBUG_LAB) {
+			sendUserMessageAsync("Last packet is a data\n");
+		}
 		if (crc11Check(last_packet, packet_in)) {
 			if (commandType(packet_in) == LOG_REQUEST_IDX) { // if log request
-				sendUserMessageAsync("Acknowledge\r\n");
+				if (DEBUG_LAB) {
+					sendUserMessageAsync("Acknowledge\n");
+				}
 				logData(last_packet); // last_packet has data.
 				transmitPacket(ACK_PACKAGE | crc3(ACK_PACKAGE)); // transmit ack
 			} else {
-				sendUserMessageAsync("Invalid command.\r\n");
+				if (DEBUG_LAB) {
+					sendUserMessageAsync("Invalid command.\n");
+				}
 				resetRequest();
 			}
 		}
 		// CRC11 failed.
 		else {
-			sendUserMessageAsync("CRC11 failed\r\n");
+			if (DEBUG_LAB) {
+				sendUserMessageAsync("CRC11 failed\n");
+			}
 			repeatRequest();
 			return;
 		}
@@ -141,7 +154,7 @@ void handleSensorData() {
 		if (crc3Check(packet_in)) {
 			// PACKET_IN is acknowledge command.
 			if (commandType(packet_in) == ACKNOWLEDGE_IDX) {
-				// debugUserInterface("Acknowledge received.\n\r");
+				// debugUserInterface("Acknowledge received.\n\n");
 				last_packet = 0;
 			}
 			// PACKET_IN is error repeat command.
@@ -154,7 +167,7 @@ void handleSensorData() {
 		}
 		// CRC3 fail
 		else {
-			// debugUserInterface("Corrupted package sending repeat request. \r\n");
+			// debugUserInterface("Corrupted package sending repeat request. \n");
 			repeatRequest();
 		}
 	}

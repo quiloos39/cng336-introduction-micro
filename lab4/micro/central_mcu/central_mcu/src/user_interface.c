@@ -1,3 +1,5 @@
+#define F_CPU 8e6
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <stdio.h>
@@ -5,6 +7,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <avr/eeprom.h>
+#include <util/delay.h>
 
 #include "./user_interface.h"
 #include "./terminal.h"
@@ -77,13 +80,13 @@ void configureUserInterface() {
 	eeprom_read_block(config, (uint8_t *) 0x01, sizeof(config));
 	
 	if (!isConfigSet(config)) {
-		sendUserMessageAsync("There is no config.\r\n");
+		sendUserMessageAsync("There is no config.\n");
 		shouldReadMaster = true;
 		shouldReadSlave = true;
-		sendUserMessageAsync("\rEnter MS WD Choice (& period):\r1) 30ms\r2) 250ms\r3) 500ms\r\n");
+		sendUserMessageAsync("\nEnter MS WD Choice (& period):\n1) 30ms\n2) 250ms\n3) 500ms\n");
 
 	} else {
-		sendUserMessageAsync("Config found \r\n");
+		sendUserMessageAsync("Config found \n");
 		mcu_watchdog = config[0];
 		sensor_watchdog = config[2];
 		shouldReadSlave = false;
@@ -114,16 +117,11 @@ void sendUserMessageAsync(const char *message) {
 
 // Formats given message into format of address:value where address and value are in hex.
 void formatMemoryEntry(uint8_t *x, char *message) {
-	sprintf(message, "0x%.4X:0x%.2X\r\n", x, *x);
+	sprintf(message, "0x%.4X:0x%.2X\n", x, *x);
 }
 
 void displayMenu() {
-	sendUserMessageAsync(
-	"1) Memory dump\r\n"\
-	"2) Last entry\r\n"\
-	"\r\n"\
-	"Select your option: "
-	);
+	sendUserMessageAsync("1) Mem dump\n2) Last entry: ");
 }
 
 void printMemoryDump() {
@@ -137,18 +135,17 @@ void printMemoryDump() {
 void printLastEntry() {
 	char message[16];
 	if (x == data_start) {
-		sendUserMessageAsync("No entry exists.\r\n");
+		sendUserMessageAsync("No entry exists.\n");
 	} else {
 		formatMemoryEntry(x - 1, message);
 		sendUserMessageAsync(message);
 	}
-
-	sendUserMessageAsync("\r\n");
-	displayMenu();
+	sendUserMessageAsync("\n");
+	// displayMenu();
 }
 
 void printInvalidSelection() {
-	sendUserMessageAsync("\r\nInvalid selection\r\n\r\n");
+	sendUserMessageAsync("Invalid selection\n");
 	displayMenu();
 }
 
@@ -168,7 +165,7 @@ void handleUserInput() {
 		}
 	} else {
 		if (shouldReadMaster) {
-			sendUserMessageAsync("\rEnter Slave WD Choice (& period):\r1) 0.5s\r2) 1s\r3) 2s\r\n");
+			sendUserMessageAsync("\nEnter Slave WD Choice (& period):\n1) 0.5s\n2) 1s\n3) 2s\n");
 			shouldReadMaster = false;
 			mcu_watchdog = selection;
 			
@@ -228,7 +225,7 @@ void handleUserOutputFinished() {
 			userOutputBuffer -> writeActive = false;
 			iterator = (uint8_t * ) 0x0500; // Reset iterator
 			memoryDumpActive = false; // Disable memory dump.
-			sendUserMessageAsync("\r\n");
+			sendUserMessageAsync("\n");
 			displayMenu();
 		}
 	}

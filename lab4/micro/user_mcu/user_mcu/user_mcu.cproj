@@ -137,6 +137,9 @@
     <Compile Include="src\terminal.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\timerlab.h">
+      <SubType>compile</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="src" />

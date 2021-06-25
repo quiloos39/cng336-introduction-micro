@@ -1,3 +1,5 @@
+#define DEBUG_LAB 0
+
 #include <avr/io.h>
 #include <avr/sleep.h>
 #include <avr/interrupt.h>

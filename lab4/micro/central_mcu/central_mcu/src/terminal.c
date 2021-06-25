@@ -1,5 +1,7 @@
+#define F_CPU 8e6
 #include <stdlib.h>
 #include <string.h>
+#include <util/delay.h>
 #include "./terminal.h"
 
 Buffer *newBuffer(uint8_t size) {
@@ -15,7 +17,7 @@ void inputHandler(char input, Buffer *buffer, void handler()) {
 		buffer->buffer[buffer->index] = '\0';
 		handler();
 		buffer->index = 0;
-		} else if (input == '\b') {
+	} else if (input == '\b') {
 		if (buffer->index > 0) {
 			buffer->index--;
 		}
