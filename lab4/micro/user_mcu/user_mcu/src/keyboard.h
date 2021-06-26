@@ -50,6 +50,9 @@ void configureKeyboard() {
 	
 	// Interrupt 7 enable.
 	EIMSK |= (1 << INT7);
+	
+	// falling edge mode
+	EICRB |= (1 << ISC71);
 }
 
 

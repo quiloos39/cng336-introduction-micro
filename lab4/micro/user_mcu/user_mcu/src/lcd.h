@@ -6,10 +6,11 @@
 #define LCD_RW_BIT 4
 #define LCD_EN_BIT 5
 
-#define LCD_LONG_DELAY 2000
+#define LCD_LONG_DELAY 20
 // #define LCD_DELAY 2000 // in micros
-#define LCD_DELAY 200 // in micros
-#define LCD_MINI_DELAY 200
+#define LCD_DELAY 10 // in micros
+#define LCD_MINI_DELAY 1
+
 #define LCD_RESET_CMD 1
 
 #define LCD_LINE_1 0x80
@@ -35,9 +36,9 @@ void LCD_sendcmd(LCD l, uint8_t cmd) {
 	*(l.cmd_port) &= ~(1<<LCD_RS_BIT | 1<<LCD_RW_BIT); // RS,RW = 0
 	*(l.cmd_port) |= 1<<LCD_EN_BIT;
 	*(l.data_port) = cmd;
-	_delay_us(LCD_DELAY);
+	_delay_ms(LCD_DELAY);
 	*(l.cmd_port) &= ~(1<<LCD_EN_BIT);
-	_delay_us(LCD_MINI_DELAY);
+	_delay_ms(LCD_MINI_DELAY);
 }
 
 LCD LCD_init(uint8_t char_num, uint8_t line_num, volatile uint8_t* cmd_port, volatile uint8_t* data_port) {
@@ -55,11 +56,13 @@ LCD LCD_init(uint8_t char_num, uint8_t line_num, volatile uint8_t* cmd_port, vol
 }
 
 
-void LCD_clear(LCD l) {
+LCD LCD_clear(LCD l) {
 	l.cursor_pos = LCD_LINE_1;
 	LCD_sendcmd(l, 0x1);
-	_delay_us(LCD_LONG_DELAY);
+	_delay_ms(LCD_LONG_DELAY);
 	LCD_sendcmd(l, l.cursor_pos);
+	
+	return l;
 }
 
 LCD LCD_putchar(LCD l, uint8_t ch) {
@@ -68,11 +71,11 @@ LCD LCD_putchar(LCD l, uint8_t ch) {
 	*(l.data_port) = ch;
 	*(l.cmd_port) |= 1 << LCD_EN_BIT;
 
-	_delay_us(LCD_DELAY);
+	_delay_ms(LCD_DELAY);
 	
 	*(l.cmd_port) &= ~(1<<LCD_EN_BIT);
 	
-	_delay_us(LCD_MINI_DELAY);
+	_delay_ms(LCD_MINI_DELAY);
 	
 	if (ch == '\n') {
 		if (l.cursor_pos >= LCD_LINE_1 && l.cursor_pos < LCD_LINE_1+l.char_num) {
@@ -85,8 +88,7 @@ LCD LCD_putchar(LCD l, uint8_t ch) {
 			l.cursor_pos = LCD_LINE_4;
 			LCD_sendcmd(l, LCD_LINE_4);
 		} else if (l.cursor_pos >= LCD_LINE_4 && l.cursor_pos < LCD_LINE_4+l.char_num) {
-			l.cursor_pos = LCD_LINE_1;
-			LCD_sendcmd(l, LCD_LINE_1);
+			l = LCD_clear(l);
 		}
 	} else {
 		if (l.cursor_pos == LCD_LINE_1 + l.char_num-1) {
@@ -99,8 +101,7 @@ LCD LCD_putchar(LCD l, uint8_t ch) {
 			l.cursor_pos = LCD_LINE_4;
 			LCD_sendcmd(l, LCD_LINE_4);
 		} else if (l.cursor_pos == LCD_LINE_4 + l.char_num-1) {
-			l.cursor_pos = LCD_LINE_1;
-			LCD_sendcmd(l, LCD_LINE_1);
+			l = LCD_clear(l);
 		} else {
 			l.cursor_pos++;
 		}

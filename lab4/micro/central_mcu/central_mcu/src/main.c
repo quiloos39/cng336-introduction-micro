@@ -1,7 +1,9 @@
+#define F_CPU 8e6
 #define DEBUG_LAB 0
 
 #include <avr/io.h>
 #include <avr/sleep.h>
+#include <util/delay.h>
 #include <avr/interrupt.h>
 
 #include "./timer.h"
@@ -43,10 +45,14 @@ int main(void) {
 	enableXMEM(); // Enable external memory.
 	// cli();
 	// WDTEnable(2);
+	_delay_ms(200);
+	
 	sei(); // Enable global interrupt.
 	configureUserInterface(); // Initialize user interface.
 	configureSensorInterface(); // Initialize sensor interface.
 	set_sleep_mode(SLEEP_MODE_IDLE); //  Set sleep mode to IDLE
+	
+
 	while (1) {
 		sleep_mode(); // Put MCU on sleep mode.
 	};
