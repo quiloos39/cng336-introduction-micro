@@ -6,8 +6,11 @@
 #define LCD_RW_BIT 4
 #define LCD_EN_BIT 5
 
-#define LCD_DELAY 200 // in micros
+#define LCD_LONG_DELAY 1400
+// #define LCD_DELAY 2000 // in micros
+#define LCD_DELAY 500 // in micros
 #define LCD_MINI_DELAY 100
+
 #define LCD_RESET_CMD 1
 
 #define LCD_LINE_1 0x80
@@ -37,8 +40,8 @@ void LCD_sendcmd(LCD l, uint8_t cmd) {
 	*(l.cmd_port) &= ~(1<<LCD_EN_BIT);
 	_delay_us(LCD_MINI_DELAY);
 }
-LCD LCD_init(uint8_t char_num, uint8_t line_num,
-volatile uint8_t* cmd_port, volatile uint8_t* data_port) {
+
+LCD LCD_init(uint8_t char_num, uint8_t line_num, volatile uint8_t* cmd_port, volatile uint8_t* data_port) {
 	LCD l;
 	l.char_num = char_num;
 	l.line_num = line_num;
@@ -53,43 +56,54 @@ volatile uint8_t* cmd_port, volatile uint8_t* data_port) {
 }
 
 
-void LCD_clear(LCD l) {
+LCD LCD_clear(LCD l) {
 	l.cursor_pos = LCD_LINE_1;
 	LCD_sendcmd(l, 0x1);
+	_delay_us(LCD_LONG_DELAY);
+	LCD_sendcmd(l, l.cursor_pos);
+	
+	return l;
 }
 
 LCD LCD_putchar(LCD l, uint8_t ch) {
-	*(l.cmd_port) |= 1<<LCD_RS_BIT;
-	*(l.cmd_port) &= ~(1<<LCD_RW_BIT); // RW = 0
+	*(l.cmd_port) |= 1 << LCD_RS_BIT;
+	*(l.cmd_port) &= ~(1 << LCD_RW_BIT); // RW = 0
 	*(l.data_port) = ch;
-	*(l.cmd_port) |= 1<<LCD_EN_BIT;
+	*(l.cmd_port) |= 1 << LCD_EN_BIT;
 
 	_delay_us(LCD_DELAY);
+	
 	*(l.cmd_port) &= ~(1<<LCD_EN_BIT);
+	
 	_delay_us(LCD_MINI_DELAY);
 	
-	if (l.cursor_pos == LCD_LINE_1+l.char_num-1) {
-		l.cursor_pos = LCD_LINE_2;
-		LCD_sendcmd(l, LCD_LINE_2);
-		} else if (l.cursor_pos == LCD_LINE_2+l.char_num-1) {
-		l.cursor_pos = LCD_LINE_3;
-		LCD_sendcmd(l, LCD_LINE_3);
-		} else if (l.cursor_pos == LCD_LINE_3+l.char_num-1) {
-		l.cursor_pos = LCD_LINE_4;
-		LCD_sendcmd(l, LCD_LINE_4);
-		} else if (l.cursor_pos == LCD_LINE_4+l.char_num-1) {
-		l.cursor_pos = LCD_LINE_1;
-		LCD_sendcmd(l, LCD_LINE_1);
+	if (ch == '\n') {
+		if (l.cursor_pos >= LCD_LINE_1 && l.cursor_pos < LCD_LINE_1+l.char_num) {
+			l.cursor_pos = LCD_LINE_2;
+			LCD_sendcmd(l, LCD_LINE_2);
+		} else if (l.cursor_pos >= LCD_LINE_2 && l.cursor_pos < LCD_LINE_2+l.char_num) {
+			l = LCD_clear(l);
+		}
+	} else {
+		if (l.cursor_pos == LCD_LINE_1 + l.char_num-1) {
+			l.cursor_pos = LCD_LINE_2;
+			LCD_sendcmd(l, LCD_LINE_2);
+		} else if (l.cursor_pos == LCD_LINE_2 + l.char_num-1) {
+			l = LCD_clear(l);
 		} else {
-		l.cursor_pos++;
+			l.cursor_pos++;
+		}
 	}
 	
 	return l;
 }
 
-void LCD_print(LCD l, uint8_t str[]) {
-	for (uint8_t i = 0; str[i] != '\0'; i++)
-	l = LCD_putchar(l, str[i]);
+LCD LCD_print(LCD l, uint8_t str[]) {
+	for (uint8_t i = 0; str[i] != '\0'; i++) {
+		l = LCD_putchar(l, str[i]);
+	}
+	
+	return l;
 }
 
 #endif

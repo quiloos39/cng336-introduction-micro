@@ -122,6 +122,12 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="cfg.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="crc.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="terminal.c">
       <SubType>compile</SubType>
     </Compile>
@@ -138,6 +144,12 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="main.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="timerlab.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="transmit.h">
       <SubType>compile</SubType>
     </Compile>
   </ItemGroup>
