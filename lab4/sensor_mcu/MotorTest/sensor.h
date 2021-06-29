@@ -98,8 +98,6 @@ ISR(ADC_vect) {
 		
 	}
 
-
-	// disable conversion while printing
 	
 	
 	
